@@ -154,7 +154,7 @@ function App() {
             />
           </div>
 
-          <div className="flex flex-col justify-center border-t border-graphite-200 pt-10 md:border-l md:border-t-0 md:pl-16 md:pt-0">
+          <div className="flex flex-col justify-center border-graphite-200 md:border-l md:pl-16">
             {results && !results.rendaInsuficiente ? (
               <>
                 <p className="text-sm font-medium uppercase tracking-[0.08em] text-graphite-400">
