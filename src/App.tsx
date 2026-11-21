@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, RotateCcw } from 'lucide-react';
 import { MoneyInput, PercentInput, Switch } from '@/components/Inputs';
 import { DistributionBar } from '@/components/DistributionBar';
@@ -23,6 +23,8 @@ function App() {
   const [crescimentoAtivo, setCrescimentoAtivo] = usePersistentNumber('crescimentoAtivo', 0);
   const [crescimentoReal, setCrescimentoReal] = usePersistentNumber('crescimentoReal', 2);
   const [resetKey, setResetKey] = useState(0);
+  const resultBarRef = useRef<HTMLDivElement>(null);
+  const [resultBarHeight, setResultBarHeight] = useState(0);
   const comCrescimento = crescimentoAtivo === 1;
   const [inflation, setInflation] = useState<InflationStatus>(() => {
     const cached = readCachedInflation();
@@ -41,6 +43,14 @@ function App() {
     return () => {
       active = false;
     };
+  }, []);
+
+  useEffect(() => {
+    const bar = resultBarRef.current;
+    if (!bar) return;
+    const observer = new ResizeObserver(() => setResultBarHeight(bar.offsetHeight));
+    observer.observe(bar);
+    return () => observer.disconnect();
   }, []);
 
   const results = useMemo(() => {
@@ -204,7 +214,10 @@ function App() {
             </div>
           </div>
 
-          <div className="fixed inset-x-0 bottom-0 z-20 flex flex-col justify-center border-t border-graphite-200 bg-paper/95 px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur md:relative md:z-auto md:border-l md:border-t-0 md:bg-transparent md:p-0 md:pl-16 md:backdrop-blur-none">
+          <div
+            ref={resultBarRef}
+            className="fixed inset-x-0 bottom-0 z-20 flex flex-col justify-center border-t border-graphite-200 bg-paper/95 px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur md:relative md:z-auto md:border-l md:border-t-0 md:bg-transparent md:p-0 md:pl-16 md:backdrop-blur-none"
+          >
             <button
               type="button"
               onClick={clear}
@@ -393,7 +406,10 @@ function App() {
         )}
       </main>
 
-      <footer className="border-t border-graphite-200 pb-40 pt-8 md:pb-8">
+      <footer
+        className="border-t border-graphite-200 pb-[calc(2rem+var(--result-bar-h))] pt-8 md:pb-8"
+        style={{ '--result-bar-h': `${resultBarHeight}px` } as React.CSSProperties}
+      >
         <p className="mx-auto max-w-6xl px-6 text-xs text-graphite-400">
           Renda Sustentável — ferramenta de estimativa. Não constitui recomendação de
           investimento.
