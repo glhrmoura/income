@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle } from 'lucide-react';
-import { MoneyInput, PercentInput } from '@/components/Inputs';
+import { AlertTriangle, RotateCcw } from 'lucide-react';
+import { MoneyInput, PercentInput, Switch } from '@/components/Inputs';
 import { DistributionBar } from '@/components/DistributionBar';
 import { Skeleton } from '@/components/Skeleton';
 import { calculateSustainableIncome } from '@/lib/finance';
@@ -20,6 +20,10 @@ function App() {
   const [patrimonio, setPatrimonio] = usePersistentNumber('patrimonio', 1_000_000);
   const [rentabilidade, setRentabilidade] = usePersistentNumber('rentabilidade', 1);
   const [aliquotaIr, setAliquotaIr] = usePersistentNumber('aliquotaIr', 15);
+  const [crescimentoAtivo, setCrescimentoAtivo] = usePersistentNumber('crescimentoAtivo', 0);
+  const [crescimentoReal, setCrescimentoReal] = usePersistentNumber('crescimentoReal', 2);
+  const [resetKey, setResetKey] = useState(0);
+  const comCrescimento = crescimentoAtivo === 1;
   const [inflation, setInflation] = useState<InflationStatus>(() => {
     const cached = readCachedInflation();
     return cached ? { state: 'ready', data: cached } : { state: 'loading' };
@@ -46,10 +50,24 @@ function App() {
       rentabilidadeMensalPct: rentabilidade,
       aliquotaIrPct: aliquotaIr,
       inflacaoAcumuladaPct: inflation.data.acumulado12m,
+      crescimentoRealAnualPct: comCrescimento ? crescimentoReal : 0,
     });
-  }, [patrimonio, rentabilidade, aliquotaIr, inflation]);
+  }, [patrimonio, rentabilidade, aliquotaIr, inflation, comCrescimento, crescimentoReal]);
 
   const loading = inflation.state === 'loading';
+  const empty =
+    patrimonio === 0 && rentabilidade === 0 && aliquotaIr === 0 && !comCrescimento;
+  const reservaTexto = comCrescimento
+    ? 'reserva para compensar a inflação e fazer o patrimônio crescer'
+    : 'reserva para compensar a inflação';
+
+  const clear = () => {
+    setPatrimonio(0);
+    setRentabilidade(0);
+    setAliquotaIr(0);
+    setCrescimentoAtivo(0);
+    setResetKey((key) => key + 1);
+  };
 
   return (
     <div className="min-h-screen bg-paper">
@@ -132,13 +150,15 @@ function App() {
               Seus investimentos
             </h2>
             <MoneyInput
+              key={`patrimonio-${resetKey}`}
               label="Patrimônio investido"
               hint="Valor total aplicado, em reais"
               value={patrimonio}
               onChange={setPatrimonio}
-              invalid={patrimonio <= 0}
+              invalid={patrimonio < 0}
             />
             <PercentInput
+              key={`rentabilidade-${resetKey}`}
               label="Rentabilidade mensal"
               hint="Rendimento médio do investimento, ao mês"
               value={rentabilidade}
@@ -146,15 +166,54 @@ function App() {
               invalid={rentabilidade < 0}
             />
             <PercentInput
+              key={`aliquotaIr-${resetKey}`}
               label="Imposto de Renda"
               hint="Alíquota efetiva sobre o rendimento (ex.: 15%)"
               value={aliquotaIr}
               onChange={setAliquotaIr}
               invalid={aliquotaIr < 0 || aliquotaIr > 100}
             />
+            <div>
+              <Switch
+                label="Crescimento real"
+                hint="Além de preservar, fazer o patrimônio crescer acima da inflação"
+                checked={comCrescimento}
+                onChange={(checked) => setCrescimentoAtivo(checked ? 1 : 0)}
+              />
+              <div
+                aria-hidden={!comCrescimento}
+                className={`grid transition-[grid-template-rows,opacity,visibility] duration-300 ease-out ${
+                  comCrescimento
+                    ? 'visible grid-rows-[1fr] opacity-100'
+                    : 'invisible grid-rows-[0fr] opacity-0'
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <div className="pt-8">
+                    <PercentInput
+                      key={`crescimentoReal-${resetKey}`}
+                      label="Crescimento real anual"
+                      hint="Quanto o patrimônio deve crescer acima do IPCA, ao ano"
+                      value={crescimentoReal}
+                      onChange={setCrescimentoReal}
+                      invalid={crescimentoReal < 0}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="fixed inset-x-0 bottom-0 z-20 flex flex-col justify-center border-t border-graphite-200 bg-paper/95 px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur md:static md:z-auto md:border-l md:border-t-0 md:bg-transparent md:p-0 md:pl-16 md:backdrop-blur-none">
+          <div className="fixed inset-x-0 bottom-0 z-20 flex flex-col justify-center border-t border-graphite-200 bg-paper/95 px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur md:relative md:z-auto md:border-l md:border-t-0 md:bg-transparent md:p-0 md:pl-16 md:backdrop-blur-none">
+            <button
+              type="button"
+              onClick={clear}
+              disabled={empty}
+              className="absolute right-6 top-1/2 flex -translate-y-1/2 items-center gap-1.5 text-xs font-medium text-graphite-500 transition-colors hover:text-graphite-900 disabled:pointer-events-none disabled:opacity-40 md:right-0 md:top-0 md:translate-y-0 md:text-sm"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Limpar
+            </button>
             {results && !results.rendaInsuficiente ? (
               <>
                 <p className="text-xs font-medium uppercase tracking-[0.08em] text-graphite-400 md:text-sm">
@@ -165,8 +224,7 @@ function App() {
                 </p>
                 <p className="mt-1 text-xs text-graphite-500 md:mt-3 md:text-sm">por mês</p>
                 <p className="mt-6 hidden max-w-md text-[13px] leading-[150%] text-graphite-400 md:block">
-                  Valor estimado disponível mensalmente após impostos e reserva para
-                  compensar a inflação.
+                  Valor estimado disponível mensalmente após impostos e {reservaTexto}.
                 </p>
               </>
             ) : results && results.rendaInsuficiente ? (
@@ -181,9 +239,9 @@ function App() {
                 <div className="mt-3 flex max-w-md items-start gap-3 border-l-2 md:mt-6 border-alert-500 bg-alert-50 px-4 py-3">
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-alert-600" />
                   <p className="text-[13px] leading-[150%] text-alert-600">
-                    A rentabilidade líquida não está sendo suficiente para preservar o
-                    poder de compra do patrimônio. Todo o rendimento líquido será
-                    reinvestido para compensar a inflação.
+                    {comCrescimento
+                      ? 'A rentabilidade líquida não está sendo suficiente para preservar o poder de compra do patrimônio e atingir o crescimento real desejado. Todo o rendimento líquido será reinvestido.'
+                      : 'A rentabilidade líquida não está sendo suficiente para preservar o poder de compra do patrimônio. Todo o rendimento líquido será reinvestido para compensar a inflação.'}
                   </p>
                 </div>
               </>
@@ -195,8 +253,7 @@ function App() {
                 <Skeleton className="mt-2 block h-9 w-56 md:mt-4 md:h-[4.5rem] md:w-[26rem]" />
                 <p className="mt-1 text-xs text-graphite-500 md:mt-3 md:text-sm">por mês</p>
                 <p className="mt-6 hidden max-w-md text-[13px] leading-[150%] text-graphite-400 md:block">
-                  Valor estimado disponível mensalmente após impostos e reserva para
-                  compensar a inflação.
+                  Valor estimado disponível mensalmente após impostos e {reservaTexto}.
                 </p>
               </>
             ) : (
@@ -243,6 +300,17 @@ function App() {
                         : 'Valor necessário para o patrimônio acompanhar o IPCA (… nos últimos 12 meses, equivalente a … ao mês).',
                     value: results && `−\u00A0${formatBRL(results.reservaInflacao)}`,
                   },
+                  ...(comCrescimento
+                    ? [
+                        {
+                          term: 'Reserva mensal para crescimento real',
+                          desc: results
+                            ? `Valor reinvestido para o patrimônio crescer ${formatPercent(crescimentoReal)} ao ano acima do IPCA (equivalente a ${formatPercent(results.crescimentoRealMensalPct)} ao mês).`
+                            : `Valor reinvestido para o patrimônio crescer ${formatPercent(crescimentoReal)} ao ano acima do IPCA.`,
+                          value: results && `−\u00A0${formatBRL(results.reservaCrescimento)}`,
+                        },
+                      ]
+                    : []),
                   {
                     term: 'Disponível para consumo',
                     desc: 'Percentual do rendimento líquido que pode ser gasto.',
@@ -269,10 +337,13 @@ function App() {
               </dl>
             </div>
             <p className="mt-6 text-xs leading-[150%] text-graphite-400">
-              Valor que deve permanecer investido para preservar o poder de compra do
-              patrimônio:{' '}
+              Valor que deve permanecer investido para{' '}
+              {comCrescimento
+                ? 'preservar o poder de compra e fazer o patrimônio crescer'
+                : 'preservar o poder de compra do patrimônio'}
+              :{' '}
               {results ? formatBRL(results.valorAPreservar) : <Skeleton className="h-3 w-20" />} por mês
-              (reserva para inflação).
+              ({comCrescimento ? 'reserva para inflação e crescimento real' : 'reserva para inflação'}).
             </p>
           </section>
         )}
@@ -284,13 +355,14 @@ function App() {
             </h2>
             <p className="mt-2 max-w-xl text-[13px] leading-[150%] text-graphite-500">
               Como o rendimento bruto mensal se divide entre o que você pode gastar, o
-              que fica investido para compensar a inflação e o que vai para impostos.
+              que fica investido para {comCrescimento ? 'compensar a inflação e crescer' : 'compensar a inflação'} e o que vai para impostos.
             </p>
             <div className="mt-8">
               {results ? (
                 <DistributionBar
                   tax={results.impostoRenda}
                   inflation={results.reservaInflacao}
+                  growth={results.reservaCrescimento}
                   spendable={results.valorDisponivel}
                 />
               ) : (

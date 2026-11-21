@@ -1,20 +1,25 @@
 interface DistributionBarProps {
   tax: number;
   inflation: number;
+  growth?: number;
   spendable: number;
 }
 
-export function DistributionBar({ tax, inflation, spendable }: DistributionBarProps) {
-  const total = tax + inflation + spendable;
+export function DistributionBar({ tax, inflation, growth = 0, spendable }: DistributionBarProps) {
+  const total = tax + inflation + growth + spendable;
   if (total <= 0) return null;
 
   const taxPct = (tax / total) * 100;
   const inflationPct = (inflation / total) * 100;
+  const growthPct = (growth / total) * 100;
   const spendPct = (spendable / total) * 100;
 
   const segments = [
     { key: 'spend', pct: spendPct, className: 'bg-forest-600', label: 'Consumível' },
     { key: 'inflation', pct: inflationPct, className: 'bg-graphite-300', label: 'Reserva p/ inflação' },
+    ...(growth > 0
+      ? [{ key: 'growth', pct: growthPct, className: 'bg-forest-200', label: 'Reserva p/ crescimento real' }]
+      : []),
     { key: 'tax', pct: taxPct, className: 'bg-graphite-800', label: 'Impostos' },
   ];
 
