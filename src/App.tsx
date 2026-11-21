@@ -114,11 +114,11 @@ function App() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 pb-24">
-        <section className="border-b border-graphite-200 py-12 md:py-16">
-          <h1 className="max-w-2xl font-display text-3xl leading-[120%] text-graphite-900 md:text-[2.6rem]">
-            Quanto você pode gastar por mês
-            <span className="block text-graphite-400">sem gastar o seu patrimônio.</span>
+      <main className="mx-auto max-w-6xl px-6">
+        <section className="pt-12 md:pt-16">
+          <h1 className="max-w-2xl font-display text-3xl leading-[120%] text-graphite-900 text-pretty md:text-[2.6rem]">
+            Quanto você pode gastar por mês{' '}
+            <span className="text-graphite-400 md:block">sem gastar o seu patrimônio.</span>
           </h1>
           <p className="mt-5 max-w-xl text-[15px] leading-[150%] text-graphite-500">
             Uma estimativa simples de quanto da renda dos seus investimentos pode ser
@@ -128,8 +128,8 @@ function App() {
 
         <section className="grid gap-12 py-12 md:grid-cols-[5fr_7fr] md:gap-16">
           <div className="flex flex-col gap-8">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-graphite-400">
-              Sua situação
+            <h2 className="font-display text-2xl font-medium tracking-tight text-graphite-900 md:text-[1.75rem]">
+              Seus investimentos
             </h2>
             <MoneyInput
               label="Patrimônio investido"
@@ -154,31 +154,31 @@ function App() {
             />
           </div>
 
-          <div className="flex flex-col justify-center border-graphite-200 md:border-l md:pl-16">
+          <div className="fixed inset-x-0 bottom-0 z-20 flex flex-col justify-center border-t border-graphite-200 bg-paper/95 px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur md:static md:z-auto md:border-l md:border-t-0 md:bg-transparent md:p-0 md:pl-16 md:backdrop-blur-none">
             {results && !results.rendaInsuficiente ? (
               <>
-                <p className="text-sm font-medium uppercase tracking-[0.08em] text-graphite-400">
+                <p className="text-xs font-medium uppercase tracking-[0.08em] text-graphite-400 md:text-sm">
                   Você pode gastar
                 </p>
-                <p className="mt-4 font-display text-5xl font-medium leading-none tracking-tight text-forest-600 md:text-7xl">
+                <p className="mt-2 font-display text-4xl font-medium leading-none tracking-tight md:mt-4 text-forest-600 md:text-7xl">
                   {formatBRL(results.valorDisponivel)}
                 </p>
-                <p className="mt-3 text-sm text-graphite-500">por mês</p>
-                <p className="mt-6 max-w-md text-[13px] leading-[150%] text-graphite-400">
+                <p className="mt-1 text-xs text-graphite-500 md:mt-3 md:text-sm">por mês</p>
+                <p className="mt-6 hidden max-w-md text-[13px] leading-[150%] text-graphite-400 md:block">
                   Valor estimado disponível mensalmente após impostos e reserva para
                   compensar a inflação.
                 </p>
               </>
             ) : results && results.rendaInsuficiente ? (
               <>
-                <p className="text-sm font-medium uppercase tracking-[0.08em] text-graphite-400">
+                <p className="text-xs font-medium uppercase tracking-[0.08em] text-graphite-400 md:text-sm">
                   Você pode gastar
                 </p>
-                <p className="mt-4 font-display text-5xl font-medium leading-none tracking-tight text-graphite-300 md:text-7xl">
+                <p className="mt-2 font-display text-4xl font-medium leading-none tracking-tight md:mt-4 text-graphite-300 md:text-7xl">
                   R$ 0,00
                 </p>
-                <p className="mt-3 text-sm text-graphite-500">por mês</p>
-                <div className="mt-6 flex max-w-md items-start gap-3 border-l-2 border-alert-500 bg-alert-50 px-4 py-3">
+                <p className="mt-1 text-xs text-graphite-500 md:mt-3 md:text-sm">por mês</p>
+                <div className="mt-3 flex max-w-md items-start gap-3 border-l-2 md:mt-6 border-alert-500 bg-alert-50 px-4 py-3">
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-alert-600" />
                   <p className="text-[13px] leading-[150%] text-alert-600">
                     A rentabilidade líquida não está sendo suficiente para preservar o
@@ -189,12 +189,12 @@ function App() {
               </>
             ) : loading ? (
               <>
-                <p className="text-sm font-medium uppercase tracking-[0.08em] text-graphite-400">
+                <p className="text-xs font-medium uppercase tracking-[0.08em] text-graphite-400 md:text-sm">
                   Você pode gastar
                 </p>
-                <Skeleton className="mt-4 block h-12 w-64 md:h-[4.5rem] md:w-[26rem]" />
-                <p className="mt-3 text-sm text-graphite-500">por mês</p>
-                <p className="mt-6 max-w-md text-[13px] leading-[150%] text-graphite-400">
+                <Skeleton className="mt-2 block h-9 w-56 md:mt-4 md:h-[4.5rem] md:w-[26rem]" />
+                <p className="mt-1 text-xs text-graphite-500 md:mt-3 md:text-sm">por mês</p>
+                <p className="mt-6 hidden max-w-md text-[13px] leading-[150%] text-graphite-400 md:block">
                   Valor estimado disponível mensalmente após impostos e reserva para
                   compensar a inflação.
                 </p>
@@ -208,8 +208,8 @@ function App() {
         </section>
 
         {(results || loading) && (
-          <section className="py-12">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-graphite-400">
+          <section className="pb-12 md:pt-12">
+            <h2 className="font-display text-2xl font-medium tracking-tight text-graphite-900 md:text-[1.75rem]">
               Detalhamento do cálculo
             </h2>
             <div className="mt-8 overflow-hidden">
@@ -278,8 +278,8 @@ function App() {
         )}
 
         {(results || loading) && (
-          <section className="border-t border-graphite-200 py-12">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-graphite-400">
+          <section className="pb-12">
+            <h2 className="font-display text-2xl font-medium tracking-tight text-graphite-900 md:text-[1.75rem]">
               Distribuição do rendimento
             </h2>
             <p className="mt-2 max-w-xl text-[13px] leading-[150%] text-graphite-500">
@@ -307,54 +307,9 @@ function App() {
           </section>
         )}
 
-        <section className="border-t border-graphite-200 py-12">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-graphite-400">
-            Como o cálculo funciona
-          </h2>
-          <div className="mt-8 grid gap-10 md:grid-cols-3">
-            {[
-              {
-                step: '01',
-                title: 'Do rendimento bruto ao líquido',
-                body: 'O rendimento bruto é o patrimônio multiplicado pela rentabilidade mensal. Do valor, descontamos o Imposto de Renda na alíquota que você informou.',
-              },
-              {
-                step: '02',
-                title: 'A reserva para a inflação',
-                body: 'O IPCA acumulado em 12 meses é convertido em uma taxa mensal equivalente. O patrimônio é multiplicado por essa taxa: esse valor permanece investido para que seu poder de compra não diminua com o tempo.',
-              },
-              {
-                step: '03',
-                title: 'O que sobra, você gasta',
-                body: 'O rendimento líquido menos a reserva para a inflação é o valor que pode ser consumido todo mês sem comprometer o patrimônio. Se o resultado for negativo, nada deve ser consumido.',
-              },
-            ].map((item) => (
-              <div key={item.step}>
-                <span className="font-display text-2xl text-graphite-300">
-                  {item.step}
-                </span>
-                <h3 className="mt-3 text-[15px] font-medium text-graphite-900">
-                  {item.title}
-                </h3>
-                <p className="mt-2 text-[13px] leading-[150%] text-graphite-500">
-                  {item.body}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-10 border-l-2 border-graphite-200 bg-graphite-50 px-5 py-4">
-            <p className="text-[13px] leading-[150%] text-graphite-600">
-              Este é um modelo de estimativa simplificado. A tributação real pode
-              depender do tipo de investimento, do prazo de resgate, do come-cotas e de
-              outros fatores — o IR nem sempre incide como uma alíquota mensal fixa.
-              Consulte as regras do seu investimento para informar a alíquota efetiva
-              mais adequada.
-            </p>
-          </div>
-
-          {inflation.state === 'ready' && inflation.data.desatualizado && (
-            <div className="mt-4 flex items-start gap-3 border-l-2 border-alert-500 bg-alert-50 px-4 py-3">
+        {inflation.state === 'ready' && inflation.data.desatualizado && (
+          <section className="border-t border-graphite-200 py-12">
+            <div className="flex items-start gap-3 border-l-2 border-alert-500 bg-alert-50 px-4 py-3">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-alert-600" />
               <p className="text-[13px] leading-[150%] text-alert-600">
                 Não foi possível contatar o IBGE agora. O cálculo está usando o último
@@ -362,20 +317,11 @@ function App() {
                 pode não estar atualizado.
               </p>
             </div>
-          )}
-
-          {inflation.state === 'ready' && (
-            <p className="mt-6 text-xs text-graphite-400">
-              Dados de inflação: Instituto Brasileiro de Geografia e Estatística (IBGE),
-              IPCA acumulado em 12 meses — tabela 1737, variável 2265. Referência:{' '}
-              {inflation.data.periodoReferencia}. Atualizado automaticamente a cada nova
-              divulgação.
-            </p>
-          )}
-        </section>
+          </section>
+        )}
       </main>
 
-      <footer className="border-t border-graphite-200 py-8">
+      <footer className="border-t border-graphite-200 pb-40 pt-8 md:pb-8">
         <p className="mx-auto max-w-6xl px-6 text-xs text-graphite-400">
           Renda Sustentável — ferramenta de estimativa. Não constitui recomendação de
           investimento.

@@ -4,9 +4,17 @@
 
 html {
   scroll-behavior: smooth;
+  overscroll-behavior: none;
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
 }
 
 body {
   @apply bg-paper text-graphite-900 font-sans antialiased;
+  overscroll-behavior: none;
   font-feature-settings: 'tnum' 1;
 }
