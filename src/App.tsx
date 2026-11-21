@@ -64,7 +64,9 @@ function App() {
             </span>
           </div>
 
-          <div className="flex items-center gap-6 text-xs text-graphite-500">
+          <div
+            className={`${inflation.state === 'error' ? 'flex' : 'hidden sm:flex'} items-center gap-6 text-xs text-graphite-500`}
+          >
             {loading && (
               <>
                 <span className="sr-only">Consultando IPCA no IBGE…</span>
@@ -72,7 +74,7 @@ function App() {
                   <span className="text-graphite-400">IPCA 12 meses</span>
                   <Skeleton className="ml-2 h-3.5 w-10" />
                 </div>
-                <div className="hidden items-center sm:flex">
+                <div className="flex items-center">
                   <span className="text-graphite-400">Referência</span>
                   <Skeleton className="ml-2 h-3.5 w-20" />
                 </div>
@@ -96,7 +98,7 @@ function App() {
                     {formatPercent(inflation.data.acumulado12m)}
                   </span>
                 </div>
-                <div className="hidden sm:block">
+                <div>
                   <span className="text-graphite-400">Referência</span>
                   <span className="ml-2 capitalize text-graphite-700">
                     {inflation.data.periodoReferencia}
@@ -119,10 +121,8 @@ function App() {
             <span className="block text-graphite-400">sem gastar o seu patrimônio.</span>
           </h1>
           <p className="mt-5 max-w-xl text-[15px] leading-[150%] text-graphite-500">
-            Informe seu patrimônio investido, a rentabilidade mensal e a alíquota de
-            Imposto de Renda. A inflação dos últimos 12 meses é obtida automaticamente
-            do IBGE, e o cálculo mostra quanto pode ser consumido preservando o poder de
-            compra do capital.
+            Uma estimativa simples de quanto da renda dos seus investimentos pode ser
+            usada todo mês, mantendo o poder de compra do patrimônio.
           </p>
         </section>
 
