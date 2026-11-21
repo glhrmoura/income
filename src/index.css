@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-paper text-graphite-900 font-sans antialiased;
+  font-feature-settings: 'tnum' 1;
+}
