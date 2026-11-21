@@ -228,7 +228,7 @@ function App() {
                   {
                     term: 'Imposto de Renda estimado',
                     desc: `Aplicação da alíquota informada (${formatPercent(aliquotaIr)}) sobre o rendimento bruto.`,
-                    value: results && `− ${formatBRL(results.impostoRenda)}`,
+                    value: results && `−\u00A0${formatBRL(results.impostoRenda)}`,
                   },
                   {
                     term: 'Rendimento líquido mensal',
@@ -237,10 +237,11 @@ function App() {
                   },
                   {
                     term: 'Reserva mensal para inflação',
-                    desc: results
-                      ? `Valor necessário para o patrimônio acompanhar o IPCA (inflação mensal equivalente: ${formatPercent(results.inflacaoMensalPct)}).`
-                      : 'Valor necessário para o patrimônio acompanhar o IPCA (inflação mensal equivalente: …).',
-                    value: results && `− ${formatBRL(results.reservaInflacao)}`,
+                    desc:
+                      results && inflation.state === 'ready'
+                        ? `Valor necessário para o patrimônio acompanhar o IPCA (${formatPercent(inflation.data.acumulado12m)} nos últimos 12 meses, equivalente a ${formatPercent(results.inflacaoMensalPct)} ao mês).`
+                        : 'Valor necessário para o patrimônio acompanhar o IPCA (… nos últimos 12 meses, equivalente a … ao mês).',
+                    value: results && `−\u00A0${formatBRL(results.reservaInflacao)}`,
                   },
                   {
                     term: 'Disponível para consumo',
@@ -260,7 +261,7 @@ function App() {
                         {item.desc}
                       </span>
                     </dt>
-                    <dd className="text-right text-base tabular-nums text-graphite-900">
+                    <dd className="whitespace-nowrap text-right text-base tabular-nums text-graphite-900">
                       {item.value ?? <Skeleton className="h-5 w-28" />}
                     </dd>
                   </div>
