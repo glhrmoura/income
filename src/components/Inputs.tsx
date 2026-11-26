@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 
 interface MoneyInputProps {
   label: string;
@@ -10,10 +10,11 @@ interface MoneyInputProps {
 
 interface PercentInputProps {
   label: string;
-  hint?: string;
+  hint?: ReactNode;
   value: number;
   onChange: (value: number) => void;
   invalid?: boolean;
+  suffix?: ReactNode;
 }
 
 function centsToDisplay(cents: string, maxDigits = 13): string {
@@ -83,7 +84,7 @@ export function MoneyInput({ label, hint, value, onChange, invalid }: MoneyInput
 
 const PERCENT_DIGITS = 5;
 
-export function PercentInput({ label, hint, value, onChange, invalid }: PercentInputProps) {
+export function PercentInput({ label, hint, value, onChange, invalid, suffix }: PercentInputProps) {
   const [display, setDisplay] = useState(() =>
     value > 0 ? centsToDisplay(String(Math.round(value * 100)), PERCENT_DIGITS) : '',
   );
@@ -127,6 +128,7 @@ export function PercentInput({ label, hint, value, onChange, invalid }: PercentI
           className="w-full bg-transparent text-xl text-graphite-900 outline-none placeholder:text-graphite-300 tabular-nums"
         />
         <span className="ml-1 select-none text-base text-graphite-400">%</span>
+        {suffix && <span className="ml-4 self-center">{suffix}</span>}
       </div>
     </label>
   );
@@ -162,5 +164,97 @@ export function Switch({ label, hint, checked, onChange }: SwitchProps) {
         />
       </button>
     </label>
+  );
+}
+
+interface IntegerInputProps {
+  label: string;
+  hint?: string;
+  value: number;
+  onChange: (value: number) => void;
+  maxDigits?: number;
+  suffix?: ReactNode;
+}
+
+export function IntegerInput({
+  label,
+  hint,
+  value,
+  onChange,
+  maxDigits = 3,
+  suffix,
+}: IntegerInputProps) {
+  const [focused, setFocused] = useState(false);
+
+  const handleChange = (raw: string) => {
+    const digits = raw.replace(/\D/g, '').slice(0, maxDigits).replace(/^0+(?=\d)/, '');
+    onChange(digits ? Number(digits) : 0);
+  };
+
+  return (
+    <div className="block">
+      <label>
+        <span className="block text-sm font-medium text-graphite-700">{label}</span>
+        {hint && <span className="mt-0.5 block text-xs text-graphite-400">{hint}</span>}
+      </label>
+      <div
+        className={`mt-2 flex items-center gap-4 border-b pb-1.5 transition-colors ${
+          focused ? 'border-forest-600' : 'border-graphite-200'
+        }`}
+      >
+        <input
+          type="text"
+          inputMode="numeric"
+          aria-label={label}
+          value={value > 0 ? String(value) : ''}
+          placeholder="0"
+          onFocus={(e) => {
+            setFocused(true);
+            selectAll(e.currentTarget);
+          }}
+          onBlur={() => setFocused(false)}
+          onChange={(e) => handleChange(e.target.value)}
+          className="w-full min-w-0 bg-transparent text-xl text-graphite-900 outline-none placeholder:text-graphite-300 tabular-nums"
+        />
+        {suffix}
+      </div>
+    </div>
+  );
+}
+
+interface SegmentedProps<T extends string> {
+  label: string;
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+}
+
+export function Segmented<T extends string>({ label, options, value, onChange }: SegmentedProps<T>) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label={label}
+      className="flex shrink-0 rounded-full bg-graphite-100 p-0.5"
+    >
+      {options.map((option) => {
+        const active = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={() => onChange(option.value)}
+            className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              active
+                ? 'bg-white text-graphite-900 shadow-sm'
+                : 'text-graphite-500 hover:text-graphite-800'
+            }`}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
