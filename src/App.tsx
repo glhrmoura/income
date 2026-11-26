@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, RotateCcw } from 'lucide-react';
-import { MoneyInput, PercentInput, Switch } from '@/components/Inputs';
+import { MoneyInput, PercentInput, Segmented, Switch } from '@/components/Inputs';
 import { DistributionBar } from '@/components/DistributionBar';
 import { Skeleton } from '@/components/Skeleton';
-import { calculateSustainableIncome } from '@/lib/finance';
+import { Projection } from '@/components/Projection';
+import { calculateSustainableIncome, projectWealth } from '@/lib/finance';
 import { usePersistentNumber } from '@/lib/usePersistentNumber';
+import { useCdi } from '@/lib/useCdi';
+import { cdiMensalPct } from '@/lib/cdi';
 import { getInflationData, readCachedInflation, type InflationData } from '@/lib/ipca';
 import {
   formatBRL,
@@ -18,10 +21,18 @@ type InflationStatus =
 
 function App() {
   const [patrimonio, setPatrimonio] = usePersistentNumber('patrimonio', 1_000_000);
-  const [rentabilidade, setRentabilidade] = usePersistentNumber('rentabilidade', 1);
+  const [rentabilidadeFixa, setRentabilidadeFixa] = usePersistentNumber('rentabilidade', 1);
+  const [rentabilidadeEmCdi, setRentabilidadeEmCdi] = usePersistentNumber('rentabilidadeEmCdi', 0);
+  const [percentualCdi, setPercentualCdi] = usePersistentNumber('percentualCdi', 100);
+  const cdi = useCdi();
+  const modoCdi = rentabilidadeEmCdi === 1;
   const [aliquotaIr, setAliquotaIr] = usePersistentNumber('aliquotaIr', 15);
   const [crescimentoAtivo, setCrescimentoAtivo] = usePersistentNumber('crescimentoAtivo', 0);
   const [crescimentoReal, setCrescimentoReal] = usePersistentNumber('crescimentoReal', 2);
+  const [prazo, setPrazo] = usePersistentNumber('prazo', 10);
+  const [prazoEmAnos, setPrazoEmAnos] = usePersistentNumber('prazoEmAnos', 1);
+  const [aporteMensal, setAporteMensal] = usePersistentNumber('aporteMensal', 0);
+  const [gastarRendimento, setGastarRendimento] = usePersistentNumber('gastarRendimento', 1);
   const [resetKey, setResetKey] = useState(0);
   const resultBarRef = useRef<HTMLDivElement>(null);
   const [resultBarHeight, setResultBarHeight] = useState(0);
@@ -53,8 +64,14 @@ function App() {
     return () => observer.disconnect();
   }, []);
 
+  const rentabilidade = modoCdi
+    ? cdi.state === 'ready'
+      ? cdiMensalPct(cdi.data.anualPct, percentualCdi)
+      : null
+    : rentabilidadeFixa;
+
   const results = useMemo(() => {
-    if (inflation.state !== 'ready') return null;
+    if (inflation.state !== 'ready' || rentabilidade === null) return null;
     return calculateSustainableIncome({
       patrimonio,
       rentabilidadeMensalPct: rentabilidade,
@@ -64,16 +81,75 @@ function App() {
     });
   }, [patrimonio, rentabilidade, aliquotaIr, inflation, comCrescimento, crescimentoReal]);
 
-  const loading = inflation.state === 'loading';
+  const unidadePrazo = prazoEmAnos === 1 ? 'anos' : 'meses';
+  const mesesProjecao = unidadePrazo === 'anos' ? prazo * 12 : prazo;
+
+  const projection = useMemo(() => {
+    if (inflation.state !== 'ready' || rentabilidade === null) return null;
+    return projectWealth(
+      {
+        patrimonio,
+        rentabilidadeMensalPct: rentabilidade,
+        aliquotaIrPct: aliquotaIr,
+        inflacaoAcumuladaPct: inflation.data.acumulado12m,
+        crescimentoRealAnualPct: comCrescimento ? crescimentoReal : 0,
+      },
+      mesesProjecao,
+      aporteMensal,
+      gastarRendimento === 1,
+    );
+  }, [
+    patrimonio,
+    rentabilidade,
+    aliquotaIr,
+    inflation,
+    comCrescimento,
+    crescimentoReal,
+    mesesProjecao,
+    aporteMensal,
+    gastarRendimento,
+  ]);
+
+  const loading = inflation.state === 'loading' || (modoCdi && cdi.state === 'loading');
   const empty =
-    patrimonio === 0 && rentabilidade === 0 && aliquotaIr === 0 && !comCrescimento;
+    patrimonio === 0 &&
+    (modoCdi ? percentualCdi === 0 : rentabilidadeFixa === 0) &&
+    aliquotaIr === 0 &&
+    !comCrescimento;
+  const rentabilidadeHint = !modoCdi
+    ? 'Rendimento médio do investimento, ao mês'
+    : cdi.state === 'ready'
+      ? `CDI atual ${formatPercent(cdi.data.anualPct)} ao ano · rende ${formatPercent(rentabilidade ?? 0)} ao mês`
+      : cdi.state === 'loading'
+        ? 'Consultando o CDI no Banco Central…'
+        : 'Não foi possível consultar o CDI agora. Tente novamente mais tarde.';
   const reservaTexto = comCrescimento
     ? 'reserva para compensar a inflação e fazer o patrimônio crescer'
     : 'reserva para compensar a inflação';
 
+  const crescimentoTag = comCrescimento && crescimentoReal > 0 && (
+    <span
+      title="Crescimento real do patrimônio ao ano, acima da inflação"
+      className="shrink-0 rounded-sm border border-forest-200 bg-forest-50 px-1 py-[3px] text-[10px] font-medium leading-none tabular-nums text-forest-600 md:px-2 md:text-sm md:leading-none"
+    >
+      +{crescimentoReal.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%/ano
+    </span>
+  );
+
+  const porMes = (
+    <p className="mt-1 text-xs text-graphite-500 md:mt-3 md:text-sm">por mês</p>
+  );
+
+  const rotulo = (
+    <p className="text-xs font-medium uppercase tracking-[0.08em] text-graphite-400 md:text-sm">
+      Você pode gastar
+    </p>
+  );
+
   const clear = () => {
     setPatrimonio(0);
-    setRentabilidade(0);
+    if (modoCdi) setPercentualCdi(0);
+    else setRentabilidadeFixa(0);
     setAliquotaIr(0);
     setCrescimentoAtivo(0);
     setResetKey((key) => key + 1);
@@ -168,12 +244,27 @@ function App() {
               invalid={patrimonio < 0}
             />
             <PercentInput
-              key={`rentabilidade-${resetKey}`}
-              label="Rentabilidade mensal"
-              hint="Rendimento médio do investimento, ao mês"
-              value={rentabilidade}
-              onChange={setRentabilidade}
-              invalid={rentabilidade < 0}
+              key={`rentabilidade-${modoCdi ? 'cdi' : 'fixa'}-${resetKey}`}
+              label={modoCdi ? 'Rentabilidade em % do CDI' : 'Rentabilidade mensal'}
+              hint={
+                <span className={modoCdi && cdi.state === 'error' ? 'text-alert-600' : undefined}>
+                  {rentabilidadeHint}
+                </span>
+              }
+              value={modoCdi ? percentualCdi : rentabilidadeFixa}
+              onChange={modoCdi ? setPercentualCdi : setRentabilidadeFixa}
+              invalid={modoCdi ? percentualCdi < 0 : rentabilidadeFixa < 0}
+              suffix={
+                <Segmented
+                  label="Tipo de rentabilidade"
+                  options={[
+                    { value: 'fixa', label: 'Ao mês' },
+                    { value: 'cdi', label: 'Do CDI' },
+                  ]}
+                  value={modoCdi ? 'cdi' : 'fixa'}
+                  onChange={(modo) => setRentabilidadeEmCdi(modo === 'cdi' ? 1 : 0)}
+                />
+              }
             />
             <PercentInput
               key={`aliquotaIr-${resetKey}`}
@@ -222,33 +313,35 @@ function App() {
               type="button"
               onClick={clear}
               disabled={empty}
-              className="absolute right-6 top-1/2 flex -translate-y-1/2 items-center gap-1.5 text-xs font-medium text-graphite-500 transition-colors hover:text-graphite-900 disabled:pointer-events-none disabled:opacity-40 md:right-0 md:top-0 md:translate-y-0 md:text-sm"
+              className="absolute right-6 top-4 flex items-center gap-1.5 text-xs font-medium text-graphite-500 transition-colors hover:text-graphite-900 disabled:pointer-events-none disabled:opacity-40 md:right-0 md:top-0 md:text-sm"
             >
               <RotateCcw className="h-3.5 w-3.5" />
               Limpar
             </button>
             {results && !results.rendaInsuficiente ? (
               <>
-                <p className="text-xs font-medium uppercase tracking-[0.08em] text-graphite-400 md:text-sm">
-                  Você pode gastar
-                </p>
-                <p className="mt-2 font-display text-4xl font-medium leading-none tracking-tight md:mt-4 text-forest-600 md:text-7xl">
-                  {formatBRL(results.valorDisponivel)}
-                </p>
-                <p className="mt-1 text-xs text-graphite-500 md:mt-3 md:text-sm">por mês</p>
+                {rotulo}
+                <div className="mt-2 flex items-center gap-3 md:mt-4 md:gap-4">
+                  <p className="font-display text-4xl font-medium leading-none tracking-tight text-forest-600 md:text-7xl">
+                    {formatBRL(results.valorDisponivel)}
+                  </p>
+                  {crescimentoTag}
+                </div>
+                {porMes}
                 <p className="mt-6 hidden max-w-md text-[13px] leading-[150%] text-graphite-400 md:block">
                   Valor estimado disponível mensalmente após impostos e {reservaTexto}.
                 </p>
               </>
             ) : results && results.rendaInsuficiente ? (
               <>
-                <p className="text-xs font-medium uppercase tracking-[0.08em] text-graphite-400 md:text-sm">
-                  Você pode gastar
-                </p>
-                <p className="mt-2 font-display text-4xl font-medium leading-none tracking-tight md:mt-4 text-graphite-300 md:text-7xl">
-                  R$ 0,00
-                </p>
-                <p className="mt-1 text-xs text-graphite-500 md:mt-3 md:text-sm">por mês</p>
+                {rotulo}
+                <div className="mt-2 flex items-center gap-3 md:mt-4 md:gap-4">
+                  <p className="font-display text-4xl font-medium leading-none tracking-tight text-graphite-300 md:text-7xl">
+                    R$ 0,00
+                  </p>
+                  {crescimentoTag}
+                </div>
+                {porMes}
                 <div className="mt-3 flex max-w-md items-start gap-3 border-l-2 md:mt-6 border-alert-500 bg-alert-50 px-4 py-3">
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-alert-600" />
                   <p className="text-[13px] leading-[150%] text-alert-600">
@@ -260,11 +353,12 @@ function App() {
               </>
             ) : loading ? (
               <>
-                <p className="text-xs font-medium uppercase tracking-[0.08em] text-graphite-400 md:text-sm">
-                  Você pode gastar
-                </p>
-                <Skeleton className="mt-2 block h-9 w-56 md:mt-4 md:h-[4.5rem] md:w-[26rem]" />
-                <p className="mt-1 text-xs text-graphite-500 md:mt-3 md:text-sm">por mês</p>
+                {rotulo}
+                <div className="mt-2 flex items-center gap-3 md:mt-4 md:gap-4">
+                  <Skeleton className="block h-9 w-56 md:h-[4.5rem] md:w-[26rem]" />
+                  {crescimentoTag}
+                </div>
+                {porMes}
                 <p className="mt-6 hidden max-w-md text-[13px] leading-[150%] text-graphite-400 md:block">
                   Valor estimado disponível mensalmente após impostos e {reservaTexto}.
                 </p>
@@ -292,7 +386,9 @@ function App() {
                   },
                   {
                     term: 'Rendimento bruto mensal',
-                    desc: 'Patrimônio × rentabilidade mensal.',
+                    desc: modoCdi
+                      ? `Patrimônio × ${formatPercent(percentualCdi)} do CDI (${formatPercent(rentabilidade ?? 0)} ao mês).`
+                      : 'Patrimônio × rentabilidade mensal.',
                     value: results && formatBRL(results.rendimentoBruto),
                   },
                   {
@@ -359,6 +455,20 @@ function App() {
               ({comCrescimento ? 'reserva para inflação e crescimento real' : 'reserva para inflação'}).
             </p>
           </section>
+        )}
+
+        {(results || loading) && (
+          <Projection
+            prazo={prazo}
+            unidade={unidadePrazo}
+            onPrazoChange={setPrazo}
+            onUnidadeChange={(unidade) => setPrazoEmAnos(unidade === 'anos' ? 1 : 0)}
+            aporte={aporteMensal}
+            onAporteChange={setAporteMensal}
+            gastarRendimento={gastarRendimento === 1}
+            onGastarRendimentoChange={(checked) => setGastarRendimento(checked ? 1 : 0)}
+            results={projection}
+          />
         )}
 
         {(results || loading) && (
